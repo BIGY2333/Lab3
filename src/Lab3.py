@@ -2,17 +2,40 @@ import unittest
 from hypothesis import given
 import hypothesis.strategies as st
 
-s = 0
+
 
 class Node(object):
 
-    def __init__(self,value):
+    def __init__(self, value=None, builder=None):
+
+        self.builder = builder
+        self.is_cached = False
         self.value = value
         self.next = None
-
-
-
 def lazy_single_linked_list(node = None,node_b = None):
+
+    def _evaluate():
+        nonlocal node
+
+        node.value, next_builder = node.builder()
+
+        node.next = Node(None,next_builder)
+
+        node.is_cached = True
+
+    def _value():
+        nonlocal node
+
+        if not node.is_cached: _evaluate()
+
+        return node.value
+
+    def _next():
+        nonlocal node
+
+        if not node.is_cached: return _evaluate()
+
+        node = node.next
 
     def head():
         nonlocal node
@@ -20,7 +43,6 @@ def lazy_single_linked_list(node = None,node_b = None):
             return node.value
         except Exception as e:
             print("Linked list does not exist")
-
     def tail():
         nonlocal node
         try:
@@ -113,19 +135,6 @@ def lazy_single_linked_list(node = None,node_b = None):
             return tmp
         return foo
 
-    def laziness():
-        nonlocal node
-
-        if length() == 0:
-            node = Node(0)
-        else:
-            global s  # 引用全局变量
-            s = s + 1
-            src = Node(s)
-            node.next = src
-        return tail()
-
-
 
 
     return {
@@ -140,7 +149,10 @@ def lazy_single_linked_list(node = None,node_b = None):
         'mconcat':mconcat,
         'iterator':iterator,
         'reduce':reduce,
-        'laziness':laziness,
+        "_evaluate":_evaluate,
+        '_value':_value,
+        '_next':_next,
+
 }
 
 

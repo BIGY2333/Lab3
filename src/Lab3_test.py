@@ -2,6 +2,11 @@ import unittest
 from hypothesis import given
 import hypothesis.strategies as st
 from Lab3 import *
+
+def nat_builder(x):
+
+    return x, lambda: nat_builder(x+1)
+
 class test(unittest.TestCase):
 
     def test_tail(self):
@@ -60,8 +65,11 @@ class test(unittest.TestCase):
         self.assertEqual(D['mconcat'](), ['1', None, '1'])
 
     def test_laziness(self):
-        D = lazy_single_linked_list()
-        self.assertEqual([D['laziness'](),D['laziness'](),D['laziness'](),D['laziness']()],[0,1,2,3])
+        root = Node(None,lambda: nat_builder(0))
+        cur = lazy_single_linked_list(root)
+        for i in range(10):
+            self.assertEqual(cur['_value'](), i)
+            cur['_next']()
 
 
 
