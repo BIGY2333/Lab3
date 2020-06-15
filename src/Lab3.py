@@ -106,16 +106,16 @@ def List(root=None):
     #The function from_generator(gen) can make a generator be a list
     #So that it can be test in other functions
     #We also using closures to make it up to the mustard
-    def from_generator(gen):
+    def from_gen(gen):
         res = None
-        def from_generatord():
+        def from_gene():
             nonlocal res
             res = con(next(gen), res)
             return res
 
-        return from_generatord
+        return from_gene
 
-    def iterator_gen(lst):
+    def _iterator(lst):
         cur = lst
         if cur != None:
             cur = cur()
@@ -130,7 +130,7 @@ def List(root=None):
         return foo
 
     # Return no instantiated accumulation_list.
-    def accumulation_list(idx):
+    def acc_list(idx):
         n = 0
         res = None
         while n <= idx:
@@ -139,7 +139,7 @@ def List(root=None):
         return res
 
     # Return no instantiated accumulation_list.
-    def hofstadter_list(idx):
+    def hof_list(idx):
         n = 0
         left = None
         right = None
@@ -175,9 +175,9 @@ def List(root=None):
         'mempty':mempty,
         'mconcat':mconcat,
         'iterator':iterator,
-        'from_generator':from_generator,
-        'iterator_gen':iterator_gen,
-        'accumulation_list':accumulation_list,
-        'hofstadter_list':hofstadter_list,
+        'from_generator':from_gen,
+        'iterator_gen':_iterator,
+        'accumulation_list':acc_list,
+        'hofstadter_list':hof_list,
     }
 
