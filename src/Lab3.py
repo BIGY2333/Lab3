@@ -1,165 +1,183 @@
-import unittest
-from hypothesis import given
-import hypothesis.strategies as st
-
-
+from collections import namedtuple
 
 class Node(object):
-
-    def __init__(self, value=None, builder=None):
-
-        self.builder = builder
-        self.is_cached = False
+    def __init__(self, value, next=None):
         self.value = value
-        self.next = None
-def lazy_single_linked_list(node = None,node_b = None):
+        self.next = next
 
-    def _evaluate():
-        nonlocal node
+def List(root=None):
+    root = root
 
-        node.value, next_builder = node.builder()
-
-        node.next = Node(None,next_builder)
-
-        node.is_cached = True
-
-    def _value():
-        nonlocal node
-
-        if not node.is_cached: _evaluate()
-
-        return node.value
-
-    def _next():
-        nonlocal node
-
-        if not node.is_cached: return _evaluate()
-
-        node = node.next
-
-    def head():
-        nonlocal node
+    def head(list):
         try:
-            return node.value
-        except Exception as e:
-            print("Linked list does not exist")
-    def tail():
-        nonlocal node
-        try:
-            cur = node
-            while cur.next:
-                cur = cur.next
-            return  cur.value
+            return list.value
         except Exception as e:
             print("Linked list does not exist")
 
-    def length():
-        nonlocal node
-        cur = node
+
+    def tail(list):
+        try:
+            while list.next :
+                list = list.next
+            return list.value
+        except Exception as e:
+            print("Linked list does not exist")
+
+    def length(list):
         count = 0
-        while cur:
+        while list is not None:
             count += 1
-            cur = cur.next
+            list = list.next
         return count
 
-    def map(f):
-        nonlocal node
-        cur = node
-        for i in range(length()):
-            a = node.value
-            node.value = f(a)
+    def map(list, function):
+        cur = list
+        while cur is not None:
+            cur.value = function(cur.value)
             cur = cur.next
+        return list
 
-    def reduce(f, initial_state):
-        nonlocal node
+    def reduce(list, function, initial_state):
         state = initial_state
-        cur = node
-        for i in range(length()):
-            a = node.value
-            state = f(state, a)
+        cur = list
+        while cur is not None:
+            state = function(state, cur.value)
             cur = cur.next
         return state
 
-    def append(value):
-        # 尾插
-        nonlocal node
-        n = Node(value)
-        cur = node
-        if length() == 0:
-            node = n
-        else:
-            while cur.next:
-                cur = cur.next
-            cur.next = n
-
-    def to_list():
-        nonlocal node
-        res = []
-        src = node
-        for i in range(length()):
-            res.append(src.value)
-            src = src.next
-        return  res
-
-    def from_list(lft):
-        nonlocal node
-        if len(lft)==0:
-            return node
-        else:
-            for i in lft:
-                append(i)
-            return node
-
-
     def mempty():
-
         return None
 
-    def mconcat():
-        nonlocal node
-        if node is None:
-            return node_b
-        cur = node
-        while cur.next :
-            cur = cur.next
-        cur.next = node_b
-        return to_list()
+    def heade(n):
+        assert type(n) is Node
+        return n.value
 
-    def iterator():
-        cur = node
+    def taile(n):
+        assert type(n) is Node
+        return n.next
+
+    def reverse(n, acc=None):
+        if n is None:
+            return acc
+        return reverse(taile(n), Node(heade(n), acc))
+
+    def con(head, tail):
+        return Node(head, tail)
+
+    def mconcat(a, b):
+        if a is None:
+            return b
+        tmp = reverse(a)
+        res = b
+        while tmp is not None:
+            res = con(tmp.value, res)
+            tmp = tmp.next
+        return res
+
+    def from_list(lst):
+        if len(lst) == 0:
+            root = None
+            return root
+        root = None
+        for e in reversed(lst):
+            root = Node(e, root)
+        return root
+
+    def to_list(root):
+        res = []
+        cur = root
+        while cur is not None:
+            res.append(cur.value)
+            cur = cur.next
+        return res
+
+    def iterator(list):
+        cur = list
+
         def foo():
             nonlocal cur
             if cur is None: raise StopIteration
             tmp = cur.value
             cur = cur.next
             return tmp
+
         return foo
 
+    #The function from_generator(gen) can make a generator be a list
+    #So that it can be test in other functions
+    #We also using closures to make it up to the mustard
+    def from_generator(gen):
+        res = None
+        def from_generatord():
+            nonlocal res
+            res = con(next(gen), res)
+            return res
 
+        return from_generatord
+
+    def iterator_gen(lst):
+        cur = lst
+        if cur != None:
+            cur = cur()
+        def foo():
+            nonlocal cur
+            if cur is None:
+                raise StopIteration
+            tmp = cur.value
+            cur = lst()
+            return tmp
+
+        return foo
+
+    # Return no instantiated accumulation_list.
+    def accumulation_list(idx):
+        n = 0
+        res = None
+        while n <= idx:
+            res = con(n, res)
+            n += 1
+        return res
+
+    # Return no instantiated accumulation_list.
+    def hofstadter_list(idx):
+        n = 0
+        left = None
+        right = None
+        while n < idx:
+            if n == 0:
+                left = con(0, left)
+                right = con(1, right)
+            else:
+                tmp_l = right
+                for _ in range(n - left.value - 1):
+                    tmp_l = tmp_l.next
+                tmp_l_value = n - tmp_l.value
+
+                tmp_r = left
+                for _ in range(n - right.value - 1):
+                    tmp_r = tmp_r.next
+                tmp_r_value = n - tmp_r.value
+
+                left = con(tmp_l_value, left)
+                right = con(tmp_r_value, right)
+            n += 1
+        return left, right
 
     return {
+        'Node':Node,
+        'from_list':from_list,
+        'to_list':to_list,
         'head':head,
         'tail':tail,
         'length':length,
         'map':map,
-        'append':append,
-        'to_list':to_list,
-        'from_list':from_list,
+        'reduce':reduce,
         'mempty':mempty,
         'mconcat':mconcat,
         'iterator':iterator,
-        'reduce':reduce,
-        "_evaluate":_evaluate,
-        '_value':_value,
-        '_next':_next,
-
-}
-
-
-
-
-
-
-
-
+        'from_generator':from_generator,
+        'iterator_gen':iterator_gen,
+        'accumulation_list':accumulation_list,
+        'hofstadter_list':hofstadter_list,
+    }
 

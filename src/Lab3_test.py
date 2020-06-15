@@ -1,78 +1,145 @@
 import unittest
+
 from hypothesis import given
 import hypothesis.strategies as st
+
 from Lab3 import *
 
-def nat_builder(x):
 
-    return x, lambda: nat_builder(x+1)
-
-class test(unittest.TestCase):
+class TestSLList(unittest.TestCase):
+    def test_head(self):
+        lst = [1, 2, 3, 4]
+        D = List()
+        root = D['from_list'](lst)
+        self.assertEqual(D['head'](root), 1)
+        root = root.next
+        self.assertEqual(D['head'](root), 2)
 
     def test_tail(self):
-        n = Node('1')
-        D = lazy_single_linked_list(n)
-        D['append'](2)
-        self.assertEqual(D['tail'](),2)
+        lst = [1, 2, 3, 4]
+        D = List()
+        self.assertEqual(D['tail'](D['from_list'](lst)), 4)
 
     def test_length(self):
-        n = Node('1')
-        D = lazy_single_linked_list(n)
-        D['append']('2')
-        self.assertEqual(D['length'](),2)
+        lst = [1, 2, 3, 4]
+        D = List()
+        self.assertEqual(D['length'](D['from_list'](lst)), 4)
 
     def test_map(self):
-        n = Node('1')
-        D = lazy_single_linked_list(n)
-        D['append']('2')
+        lst = [1, 2, 3, 4]
+        D = List()
+        h = D['from_list'](lst)
 
-        D['map'](str)
-        self.assertEqual(D['to_list'](), ['1','2'])
+        def func(v):
+            v = v * v
+            return v
+
+        self.assertEqual(D['to_list'](D['map'](h, func)), [1, 4, 9, 16])
+
+    def test_reduce(self):
+        # sum of list
+        lst = [1, 2, 3, 4]
+        l = List()
+        s = l['from_list'](lst)
+        self.assertEqual(l['reduce'](s, lambda st, e: st + e, 0), 10)
+
+    def test_mconcat(self):
+        l1 = [1, 2, 3, 4]
+        l2 = [5, 6, 7, 8]
+        z = List()
+
+        h1 = z['from_list'](l1)
+        h2 = z['from_list'](l2)
+        c = z['mconcat'](h1, h2)
+        self.assertEqual(z['to_list'](c), [1, 2, 3, 4, 5, 6, 7, 8])
+
+    def test_to_list(self):
+        l = List()
+        self.assertEqual(l['to_list'](Node('a')), ['a'])
+        self.assertEqual(l['to_list'](Node('a', Node('b'))), ['a', 'b'])
+
+    def test_from_list(self):
+        test_data = [
+            [],
+            ['a'],
+            ['a', 'b']
+        ]
+
+        for e in test_data:
+            l = List()
+            self.assertEqual(l['to_list'](l['from_list'](e)), e)
 
     @given(st.lists(st.integers()))
     def test_from_list_to_list_equality(self, a):
-        D = lazy_single_linked_list()
-        D['from_list'](a)
-        b = D['to_list']()
-        self.assertEqual(a, b)
+        l = List()
+        self.assertEqual(l['to_list'](l['from_list'](a)), a)
 
-    def test_mconcat(self):
-        n1 = Node('1')
-        n2 = Node('1')
-        D = lazy_single_linked_list(n1,n2)
-        D['append']('2')
-
-        self.assertEqual(D['mconcat'](), ['1', '2','1'])
+    @given(st.lists(st.integers()))
+    def test_monoid_identity(self, lst):
+        l = List()
+        a = l['from_list'](lst)
+        self.assertEqual(l['to_list'](l['mconcat'](l['mempty'](), a)), l['to_list'](a))
+        self.assertEqual(l['to_list'](l['mconcat'](a, l['mempty']())), l['to_list'](a))
 
     def test_iter(self):
-        n = Node('1')
-        D = lazy_single_linked_list(n)
-        D['append']('2')
+        x = [1, 2, 3]
+        l = List()
+        l1 = l['from_list'](x)
         tmp = []
+
         try:
-            get_next = D['iterator']()
+            get_next = l['iterator'](l1)
             while True:
                 tmp.append(get_next())
         except StopIteration:
             pass
-        self.assertEqual(['1','2'], tmp)
+        self.assertEqual(x, tmp)
+        self.assertEqual(l['to_list'](l1), tmp)
 
-    def test_monoid(self):
-        n1 = Node('1')
-        n2 = Node('1')
-        D = lazy_single_linked_list(n1, n2)
-        D['append'](D['mempty']())
-        self.assertEqual(D['mconcat'](), ['1', None, '1'])
+    @given(st.integers())
+    def test_accumulation_list(self, idx):
+        l=List()
+        if idx < 50000:
+            out_list = list(range(idx, -1, -1))
+            self.assertEqual(l['to_list'](l['accumulation_list'](idx)), out_list)
 
-    def test_laziness(self):
-        root = Node(None,lambda: nat_builder(0))
-        cur = lazy_single_linked_list(root)
-        for i in range(10):
-            self.assertEqual(cur['_value'](), i)
-            cur['_next']()
+    def test_accumulation_list(self):
+        l=List()
+        def tmp_accumulation_list(i):
+            while True:
+                yield i
+                i += 1
 
+        lst = []
+        i = l['iterator_gen'](l['from_generator'](tmp_accumulation_list(0)))
+        while True:
+            x = i()
+            if len(lst) > 50: break
+            lst.append(x)
+        print(lst)
 
+    @given(st.integers())
+    def test_hofstadter_list(self, idx):
+        l = List()
+        def tmp_hofstadter_list(k):
+            left = []
+            right = []
+            for i in range(k):
+                if i == 0:
+                    left.append(0)
+                    right.append(1)
+                else:
+                    left.append(i - right[left[i - 1]])
+                    right.append(i - left[right[i - 1]])
+            return left, right
 
+        if idx < 500:
+            left_res, right_res = l['hofstadter_list'](idx)
+            left_res, right_res = l['to_list'](left_res), l['to_list'](right_res)
+            left_list, right_list = tmp_hofstadter_list(idx)
+            left_list, right_list = list(reversed(left_list)), list(reversed(right_list))
+            self.assertEqual(left_res, left_list)
+            self.assertEqual(right_res, right_list)
 
-
-
+if __name__ == '__main__':
+    unittest.main()
